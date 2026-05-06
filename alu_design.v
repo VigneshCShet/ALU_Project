@@ -22,9 +22,9 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
   reg [in_a - 1 : 0] opa_d;
   reg [in_b - 1 : 0] opb_d;
   
-  
+  //To block inputs when Mutiplying
   always @(negedge CLK or posedge RST) begin
-    if(!RST && ce) begin
+    if(!RST && ce && mode) begin
       if(cmd == 4'd9 || cmd == 4'd10)
             busy <= ~busy;
           else
@@ -59,14 +59,14 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
       ce <= CE;
       
   //To avoid any inputs during multiplication
-      if(busy && (cmd == 4'd9 || cmd == 4'd10)) begin
+      if(busy && (cmd == 4'd9 || cmd == 4'd10) && mode) begin
         opa <= opa;
         opb <= opb;
         cin <= cin;
       end
       
   //when it is not busy and cmd is multiplication
-      else if(!busy && (cmd == 4'd9 || cmd == 4'd10))begin
+      else if(!busy && (cmd == 4'd9 || cmd == 4'd10) && mode)begin
         opa <= OPA;
         opb <= OPB;
         cin <= CIN;

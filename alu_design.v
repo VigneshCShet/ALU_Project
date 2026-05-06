@@ -22,6 +22,15 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
   reg [in_a - 1 : 0] opa_d;
   reg [in_b - 1 : 0] opb_d;
   
+  
+  always @(negedge CLK or posedge RST) begin
+    if(!RST && ce) begin
+      if(cmd == 4'd9 || cmd == 4'd10)
+            busy <= ~busy;
+          else
+            busy <= 0;
+    end
+  end
   //ALU Logic
   always @(posedge CLK or posedge RST) begin
   
@@ -83,10 +92,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
    
   //If clock enable is 1
       else begin
-        if(cmd == 4'd9 || cmd == 4'd10)
-          busy <= ~busy;
-        else
-          busy <= 0;
+        
        
   //Mode = 1 is arithmetic operations
         if(mode) begin

@@ -201,7 +201,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
             
             4'd11: begin
               if(inp_valid == 2'b11) begin
-                res_d[in_a - 1 : 0] <= $signed(opa) + $signed(opb);
+                RES[in_a - 1 : 0] <= $signed(opa) + $signed(opb);
                 if((opa[in_a - 1] && opb[in_b - 1] && ~RES[in_a -1]) || (RES[in_a -1] && ~opa[in_a - 1] && ~opb[in_b - 1]))
                   OFLOW <= 1;
                 else

@@ -13,7 +13,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
   output reg OFLOW, COUT, G, L, E, ERR;
 
   //Registers declaration
-  reg busy;
+  reg [1:0] process_state; 
   reg cin, mode, ce;
   reg [1:0] inp_valid;
   reg [3:0] cmd;
@@ -21,16 +21,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
   reg [in_b - 1 : 0] opb;
   reg [in_a - 1 : 0] opa_d;
   reg [in_b - 1 : 0] opb_d;
-  
-  //To block inputs when Mutiplying
-  always @(negedge CLK or posedge RST) begin
-    if(!RST && ce && mode) begin
-      if(cmd == 4'd9 || cmd == 4'd10)
-            busy <= ~busy;
-          else
-            busy <= 0;
-    end
-  end
+
   //ALU Logic
   always @(posedge CLK or posedge RST) begin
   
@@ -47,9 +38,12 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
       opb_d <= 0;  
       opa <= 0;
       opb <= 0; 
-      busy <= 0;
       cin <= 0;
       cmd <= 0;
+      inp_valid <= 0;
+      mode <= 0;
+      ce <= 0;
+      process_state <= 0;
     end
   //reset = 0
     else begin
@@ -58,25 +52,42 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
       mode <= MODE;
       ce <= CE;
       
-  //To avoid any inputs during multiplication
-      if(busy && (cmd == 4'd9 || cmd == 4'd10) && mode) begin
-        opa <= opa;
-        opb <= opb;
-        cin <= cin;
-      end
-      
-  //when it is not busy and cmd is multiplication
-      else if(!busy && (cmd == 4'd9 || cmd == 4'd10) && mode)begin
+  
+      if (CMD != cmd || MODE != mode) begin
+        
         opa <= OPA;
         opb <= OPB;
         cin <= CIN;
-      end
-      
-  //For other operations besides multiplication
+        process_state <= 0;
+      end 
+      else if (MODE && (CMD == 4'd9 || CMD == 4'd10)) begin
+        // Multiplication
+        if (process_state == 0) begin
+          
+          opa <= opa;
+          opb <= opb;
+          cin <= cin;
+          process_state <= 1;
+        end else if (process_state == 1) begin
+          
+          opa <= opa;
+          opb <= opb;
+          cin <= cin;
+          process_state <= 2;
+        end else begin
+         
+          opa <= OPA;
+          opb <= OPB;
+          cin <= CIN;
+          process_state <= 0;
+        end
+      end 
       else begin
+        // For other operations
         opa <= OPA;
         opb <= OPB;
         cin <= CIN;
+        process_state <= 0;
       end
       
   //If clock enable is 0 
@@ -92,7 +103,6 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
    
   //If clock enable is 1
       else begin
-        
        
   //Mode = 1 is arithmetic operations
         if(mode) begin
@@ -213,12 +223,16 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
             
   //Increment a and b, and multiply
             4'd9: begin
-           
               if(inp_valid == 2'b11) begin
-                
+                if (process_state == 0) begin
                   opa_d <= opa + 1;
                   opb_d <= opb + 1;
-                  RES <= opa_d * opb_d;
+                  RES <= RES; 
+                end else if (process_state == 1) begin
+                  RES <= opa_d * opb_d; 
+                end else begin
+                  RES <= RES; 
+                end
               end
               else
                 ERR <= 1;
@@ -227,10 +241,15 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
   //Left shift a by once and multiply with b            
             4'd10: begin
               if(inp_valid == 2'b11) begin
-                
-                opa_d <= (opa << 1);
-                RES <= opa_d * opb;   
-                   
+                if (process_state == 0) begin
+                  opa_d <= (opa << 1);
+                  opb_d <= opb;
+                  RES <= RES; 
+                end else if (process_state == 1) begin
+                  RES <= opa_d * opb_d; 
+                end else begin
+                  RES <= RES; 
+                end
               end        
               else
                 ERR <= 1;
@@ -330,8 +349,6 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
           E <= 1'b0;
           ERR <= 1'b0;
           
-          
-          
           case(cmd)
           
   //AND
@@ -425,7 +442,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2*in_a)(CLK, RST, INP_VAL
   //SHIFT_Left_1_B
             4'd11: begin
               if(inp_valid[1])
-                RES <= {opb << 1} & ({in_b{1'b1}});
+                RES <= (opb << 1) & ({in_b{1'b1}});
               else
                 ERR <= 1;
             end

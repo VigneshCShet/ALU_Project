@@ -24,7 +24,7 @@ module alu_tb;
   reg signed [7:0] opa_s;
   reg signed [7:0] opb_s;
   
-  //dut
+  
   ALU dut( 
     .CLK(clk), .RST(rst), .MODE(mode), .CE(ce),
     .INP_VALID(inp_valid),
@@ -35,7 +35,6 @@ module alu_tb;
     .OFLOW(oflow), .COUT(cout), .G(g), .L(l), .E(e), .ERR(err)
   );
   
-  //Reference  
   alu_ref scr_brd(
     .RST(rst), .INP_VALID(inp_valid), 
     .MODE(mode), 
@@ -47,7 +46,7 @@ module alu_tb;
   initial clk = 0;
   always #5 clk = ~clk;
 
-//To create pass_log and Fail_log
+
   task write_log;
     input         passed;
     input [80*8:1] test_name;
@@ -55,15 +54,15 @@ module alu_tb;
     
       if (passed) begin
         $fdisplay(pass_log,
-          "[PASS] %-40s | OPA=%d(%b) OPB=%d(%b) CMD=%d CIN=%b | RES=%d(%b) COUT=%b OFLOW=%b G=%b E=%b L=%b ERR=%b",
-          test_name, opa, opa, opb, opb, cmd, cin,
+          "[PASS] %-40s | OPA=%d(%b) OPB=%d(%b) CMD=%d CIN=%b INP_VALID = %b | RES=%d(%b) COUT=%b OFLOW=%b G=%b E=%b L=%b ERR=%b",
+          test_name, opa, opa, opb, opb, cmd, cin, inp_valid,
           res, res, cout, oflow, g, e, l, err);
           
       end else begin
       
         $fdisplay(fail_log,
-          "[FAIL] %-40s | OPA=%d(%b) OPB=%d(%b) CMD=%d CIN=%b test no = %d",
-          test_name, opa, opa, opb, opb, cmd, cin, tst_cnt);
+          "[FAIL] %-40s | OPA=%d(%b) OPB=%d(%b) INP_VALID = %b CMD=%d CIN=%b test no = %d",
+          test_name, opa, opa, opb, opb, inp_valid, cmd, cin, tst_cnt);
           
         $fdisplay(fail_log,
           "       DUT -> RES=(%d(%b) COUT=%b OFLOW=%b G=%b E=%b L=%b ERR=%b test no= %d",
@@ -78,7 +77,9 @@ module alu_tb;
     end
   endtask
 
-  //Tasks
+  // -----------------------------------------------------------------------
+  // Existing tasks
+  // -----------------------------------------------------------------------
   task apply_inp_arith(
     input ce_a,
     input [1:0] inp_valid_a, 
@@ -300,7 +301,9 @@ module alu_tb;
     end
   endtask
 
- //Stimulus
+  // -----------------------------------------------------------------------
+  // TEST STIMULUS
+  // -----------------------------------------------------------------------
   initial begin
   
     pass_log = $fopen("pass_log.txt", "w");
@@ -319,15 +322,15 @@ module alu_tb;
     opa_s = $signed(opa);
     opb_s = $signed(opb);
    
-
+    // ================================================================
     // BASIC / RANDOM TESTS
-
+    // ================================================================
     arithmetic_ip_add();
     arithmetic_mul_ip();
 
-
+    // ================================================================
     // ARITHMETIC MODE (MODE=1)
-
+    // ================================================================
 
    // --- ADD (CMD=0) ---
     apply_inp_arith(1, 2'b11, 4'd0, 8'h10, 8'h20, 0, "arith_add_no_cout");
@@ -424,14 +427,16 @@ module alu_tb;
     apply_inp_arith_mul(1, 2'b11, 4'd10, 8'h0F, 8'h0F, 0, "arith_mul_shift_max_small");
     apply_inp_arith_mul(1, 2'b10, 4'd10, 8'h00, 8'h0A, 0, "arith_mul_shift_zero_opa_inp_invalid");
 
-
+    // ================================================================
     // INVALID CMD (Arithmetic) - ERR expected
-
+    // ================================================================
     apply_inp_arith(1, 2'b11, 4'd13, 8'h55, 8'h55, 0, "arith_invalid_cmd_13");
     apply_inp_arith(1, 2'b11, 4'd14, 8'h55, 8'h55, 0, "arith_invalid_cmd_14");
     apply_inp_arith(1, 2'b11, 4'd15, 8'h55, 8'h55, 0, "arith_invalid_cmd_15");
 
+    // ================================================================
     // INP_VALID checks (Arithmetic) - ERR expected
+    // ================================================================
     apply_inp_arith(1, 2'b00, 4'd0,  8'hAA, 8'hBB, 0, "arith_add_inp_valid_00");
     apply_inp_arith(1, 2'b01, 4'd0,  8'hAA, 8'hBB, 0, "arith_add_inp_valid_01");
     apply_inp_arith(1, 2'b10, 4'd0,  8'hAA, 8'hBB, 0, "arith_add_inp_valid_10");
@@ -446,9 +451,9 @@ module alu_tb;
     apply_inp_arith(1, 2'b01, 4'd11, 8'hAA, 8'hBB, 0, "arith_signed_add_inp_valid_invalid");
     apply_inp_arith(1, 2'b00, 4'd12, 8'hAA, 8'hBB, 0, "arith_signed_sub_inp_valid_invalid");
 
-
+    // ================================================================
     // LOGIC MODE (MODE=0)
-
+    // ================================================================
 
     // --- AND (CMD=0) ---
     apply_inp_logic(1, 2'b11, 4'd0,  8'hFF, 8'hFF, 0, "logic_and_all_ones");
@@ -518,10 +523,10 @@ module alu_tb;
     apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'h10, 0, "logic_rol_opb_bit4_set");
     apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'h08, 0, "logic_rol_opb_bit3_set_only");
     apply_inp_logic(1, 2'b01, 4'd12, 8'hB4, 8'h03, 0, "logic_rol_inp_valid_invalid");
-    apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'b10001101, 0, "logic_ror_inp_valid_invalid");
-    apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'b01001101, 0, "logic_ror_inp_valid_invalid");
-    apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'b00101101, 0, "logic_ror_inp_valid_invalid");
-    apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'b00011101, 0, "logic_ror_inp_valid_invalid");
+    apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'b10001101, 0, "logic_rol_[7:5]_bit_high");
+    apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'b01001101, 0, "logic_rol_[7:5]_bit_high");
+    apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'b00101101, 0, "logic_rol_[7:5]_bit_high");
+    apply_inp_logic(1, 2'b11, 4'd12, 8'hB4, 8'b00011101, 0, "logic_rol_[7:5]_bit_high");
 
     // --- ROR (CMD=13) ---
     apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'h01, 0, "logic_ror_by_1");
@@ -535,10 +540,10 @@ module alu_tb;
     apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'h80, 0, "logic_ror_opb_upper_nibble_set");
     apply_inp_logic(1, 2'b10, 4'd13, 8'hB4, 8'h03, 0, "logic_ror_inp_valid_invalid");
     apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'hF3, 0, "logic_ror_inp_valid_invalid");
-    apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'b10001101, 0, "logic_ror_inp_valid_invalid");
-    apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'b01001101, 0, "logic_ror_inp_valid_invalid");
-    apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'b00101101, 0, "logic_ror_inp_valid_invalid");
-    apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'b00011101, 0, "logic_ror_inp_valid_invalid");
+    apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'b10001101, 0, "logic_ror_[7:5]_bit_high");
+    apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'b01001101, 0, "logic_ror_[7:5]_bit_high");
+    apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'b00101101, 0, "logic_ror_[7:5]_bit_high");
+    apply_inp_logic(1, 2'b11, 4'd13, 8'hB4, 8'b00011101, 0, "logic_ror_[7:5]_bit_high");
 
     // --- Invalid CMD (Logic mode) ---
     apply_inp_logic(1, 2'b11, 4'd14, 8'hAA, 8'h55, 0, "logic_invalid_cmd_14");
@@ -552,9 +557,9 @@ module alu_tb;
     apply_inp_logic(1, 2'b01, 4'd10, 8'h00, 8'hAA, 0, "logic_shr_b_inp_valid_b1_zero2");
     apply_inp_logic(1, 2'b01, 4'd11, 8'h00, 8'h01, 0, "logic_shl_b_inp_valid_b1_zero2");
 
-
+    // ================================================================
     // CE CORNER CASES
-
+    // ================================================================
     apply_inp_arith(1, 2'b11, 4'd0, 8'h10, 8'h10, 0, "ce_pre_add");
     apply_inp_gen(1, 0, 2'b11, 4'd0, 8'hFF, 8'hFF, 0, "ce_disable_hold_outputs");
     @(posedge clk); @(posedge clk); @(posedge clk);
@@ -568,8 +573,9 @@ module alu_tb;
     end
     apply_inp_arith(1, 2'b11, 4'd0, 8'h0A, 8'h0A, 0, "ce_first_enable_add");
 
-
+    // ================================================================
     // RST CORNER CASES
+    // ================================================================
     apply_inp_gen(1, 1, 2'b11, 4'd0, 8'h20, 8'h30, 0, "pre_rst_during_op");
     #2;
     rst = 1;
@@ -585,8 +591,9 @@ module alu_tb;
     tst_cnt = tst_cnt + 1;
     check_mess("reset_deassert_all_outputs_zero");
 
+    // ================================================================
     // CMD/MODE CHANGE CORNER CASES
-
+    // ================================================================
     @(posedge clk);
     apply_inp_gen(1,1,2'b11,4'd9, 8'h20, 8'h30, 0, "cmd_change_during_multiplication");
     @(negedge clk);
@@ -611,9 +618,31 @@ module alu_tb;
     // --- Single operand on 2-operand CMDs ---
     apply_inp_arith(1, 2'b01, 4'd2,  8'h0F, 8'h01, 1, "invalid_input_drive_add_cin");
     apply_inp_logic(1, 2'b01, 4'd2,  8'hAA, 8'h55, 0, "invalid_input_drive_or");
-
-
-  
+    
+    apply_inp_gen(1,1,2'b11,4'd9, 8'h20, 8'h30, 0, "CMD_change_during_multiplication_to_addition");
+    #2;
+    cmd = 0;
+    @(posedge clk);
+    @(posedge clk);
+    #1;
+    tst_cnt = tst_cnt + 1;
+    check_mess("CMD_change_during_multiplication_to_addition");
+    
+    @(posedge clk);
+    apply_inp_gen(1,1,2'b11,4'd9, 8'h20, 8'h30, 0, "mode_change_during_multiplication");
+    @(negedge clk);
+    ce = 0;
+    @(posedge clk);
+    ce = 1;
+    @(posedge clk);
+    @(posedge clk);
+    #1;
+    tst_cnt = tst_cnt + 1;
+    check_mess("ce_0_during_multiplication");
+   
+    // ================================================================
+    // SUMMARY
+    // ================================================================
     #10;
     $display("===== TEST SUMMARY: TOTAL=%0d PASS=%0d FAIL=%0d =====", tst_cnt, pass_cnt, fail_cnt);
     $fdisplay(pass_log, "--------------------------------------------------------------------------------------------------------------------------------");

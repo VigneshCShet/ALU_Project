@@ -1,9 +1,9 @@
 `default_nettype none
-module ALU #(parameter in_a = 8, in_b = 8, out_width = 2 * in_a)(CLK, RST, INP_VALID, MODE, CMD, CE, OPA, OPB, CIN, RES, OFLOW, COUT, G, L, E, ERR);
+module ALU #(parameter in_a = 8, in_b = 8, out_width = 2 * in_a, cmd_width = 4)(CLK, RST, INP_VALID, MODE, CMD, CE, OPA, OPB, CIN, RES, OFLOW, COUT, G, L, E, ERR);
 
   //Input declaration
   input wire CLK, RST, CE, MODE, CIN;
-  input wire [3:0] CMD;
+  input wire [cmd_width - 1 :0] CMD;
   input wire [1:0] INP_VALID;
   input wire [in_a - 1 : 0] OPA;
   input wire [in_a - 1 : 0] OPB;
@@ -140,7 +140,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2 * in_a)(CLK, RST, INP_V
             //add
             4'd0: begin
               if (inp_valid == 2'b11)
-                {COUT, RES[in_a - 1 : 0]} <= opa + opb;
+                {COUT, RES[in_a : 0]} <= opa + opb;
               else
                 ERR <= 1;
             end
@@ -148,7 +148,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2 * in_a)(CLK, RST, INP_V
             //sub
             4'd1: begin
               if (inp_valid == 2'b11)
-                {OFLOW, RES[in_a - 1 : 0]} <= opa - opb;
+                {OFLOW, RES[in_a: 0]} <= opa - opb;
               else
                 ERR <= 1;
             end
@@ -156,7 +156,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2 * in_a)(CLK, RST, INP_V
             //add with cin
             4'd2: begin
               if (inp_valid == 2'b11)
-                {COUT, RES[in_a - 1 : 0]} <= opa + opb + cin;
+                {COUT, RES[in_a : 0]} <= opa + opb + cin;
               else
                 ERR <= 1;
             end
@@ -164,7 +164,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2 * in_a)(CLK, RST, INP_V
             //sub with cin
             4'd3: begin
               if (inp_valid == 2'b11)
-                {OFLOW, RES[in_a - 1 : 0]} <= opa - opb - cin;
+                {OFLOW, RES[in_a : 0]} <= opa - opb - cin;
               else
                 ERR <= 1;
             end
@@ -251,7 +251,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2 * in_a)(CLK, RST, INP_V
             //Signed Addition and compare
             4'd11: begin
               if (inp_valid == 2'b11) begin
-                RES[in_a - 1 : 0] <= temp_sum;
+                RES[in_a  : 0] <= temp_sum;
                 if ((opa[in_a-1] && opb[in_b-1] && !temp_sum[in_a-1]) || (!opa[in_a-1] && !opb[in_b-1] && temp_sum[in_a-1]))
                   OFLOW <= 1;
                 else
@@ -274,7 +274,7 @@ module ALU #(parameter in_a = 8, in_b = 8, out_width = 2 * in_a)(CLK, RST, INP_V
             //Signed Subtraction and compare
             4'd12: begin
               if (inp_valid == 2'b11) begin
-                RES[in_a - 1 : 0] <= temp_diff;
+                RES[in_a : 0] <= temp_diff;
                 if ((opa[in_a-1] && !opb[in_b-1] && !temp_diff[in_a-1]) || (!opa[in_a-1] && opb[in_b-1] && temp_diff[in_a-1]))
                   OFLOW <= 1;
                 else
